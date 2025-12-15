@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #FFFFFE;
+    --foreground: #111111;
+    --card: #FFFFFE;
+    --card-foreground: #111111;
+    --popover: #FFFFFE;
+    --popover-foreground: #111111;
+    --primary: #111111;
+    --primary-foreground: #FFFFFE;
+    --secondary: #FFFFFE;
+    --secondary-foreground: #111111;
+    --muted: #FFFFFE;
+    --muted-foreground: #111111;
+    --accent: #FFFFFE;
+    --accent-foreground: #111111;
+    --destructive: #111111;
+    --destructive-foreground: #FFFFFE;
+    --border: #111111;
+    --input: #111111;
+    --ring: #111111;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-[#FFFFFE] text-[#111111];
+    font-family: 'Favorit', sans-serif;
+  }
+}
+
+/* Import the main styles */
+@import '../index.css';
+
+

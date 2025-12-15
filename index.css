@@ -1,0 +1,228 @@
+/* Font Face Declarations */
+@font-face {
+  font-family: 'Favorit';
+  src: url('/fonts/Favorit-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Favorit';
+  src: url('/fonts/Favorit-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Favorit';
+  src: url('/fonts/Favorit-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Global Background */
+body {
+  background: #FFFFFE;
+  min-height: 100vh;
+}
+
+/* Global Text Color */
+body,
+html {
+  color: #111111;
+}
+
+/* Headings - Favorit Medium */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Favorit', sans-serif;
+  font-weight: 500;
+  color: #111111;
+}
+
+/* Light weight for some headings */
+h1.font-light,
+h2.font-light,
+h3.font-light,
+.heading-light {
+  font-weight: 300;
+}
+
+/* Medium weight for headings */
+.heading-medium {
+  font-weight: 500;
+}
+
+/* Subheadings - Favorit Regular */
+.subheading,
+.subtitle,
+.text-subheading {
+  font-family: 'Favorit', sans-serif;
+  font-weight: 400;
+  color: #111111;
+}
+
+/* Body Text - Favorit Regular */
+p,
+span,
+div,
+a,
+li,
+td,
+th,
+label,
+input,
+textarea,
+select,
+button {
+  font-family: 'Favorit', sans-serif;
+  font-weight: 400;
+  color: #111111;
+}
+
+/* Buttons */
+button,
+.btn,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+a[role="button"],
+button[type="submit"],
+button[type="button"] {
+  background-color: #111111 !important;
+  color: #FFFFFE !important;
+  border: 1px solid #111111 !important;
+  transition: all 0.2s ease;
+}
+
+button:hover,
+.btn:hover,
+[role="button"]:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover,
+a[role="button"]:hover,
+button[type="submit"]:hover,
+button[type="button"]:hover {
+  background-color: #111111 !important;
+  color: #FFFFFE !important;
+}
+
+button:active,
+.btn:active,
+[role="button"]:active,
+input[type="submit"]:active,
+input[type="button"]:active,
+a[role="button"]:active,
+button[type="submit"]:active,
+button[type="button"]:active {
+  background-color: #111111 !important;
+}
+
+/* Override Tailwind button classes */
+.bg-brand-500,
+.bg-brand-600,
+.bg-brand-700,
+.bg-slate-900,
+.bg-slate-800,
+.bg-gray-900,
+.bg-gray-800,
+button.bg-brand-500,
+button.bg-brand-600,
+button.bg-brand-700,
+button.bg-slate-900,
+button.bg-slate-800,
+button.bg-gray-900,
+button.bg-gray-800 {
+  background-color: #111111 !important;
+  color: #FFFFFE !important;
+}
+
+/* Links */
+a {
+  color: #111111;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #111111;
+}
+
+/* Input Fields */
+input,
+textarea,
+select {
+  background-color: #FFFFFE;
+  color: #111111;
+  border: 1px solid #111111;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #111111;
+  background-color: #FFFFFE;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #111111;
+  opacity: 0.5;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFFFFE;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #111111;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #111111;
+}
+
+/* Override Tailwind text colors */
+.text-gray-900,
+.text-slate-900,
+.text-gray-800,
+.text-slate-800,
+.text-gray-700,
+.text-slate-700,
+.text-gray-600,
+.text-slate-600 {
+  color: #111111 !important;
+}
+
+/* Override Tailwind background colors for cards/containers */
+.bg-white,
+.bg-gray-50,
+.bg-slate-50,
+.bg-gray-100,
+.bg-slate-100 {
+  background-color: #FFFFFE !important;
+  border: 1px solid #111111;
+}
+
+/* Override dark backgrounds */
+.bg-slate-900,
+.bg-slate-800,
+.bg-gray-900,
+.bg-gray-800 {
+  background-color: #111111 !important;
+  color: #FFFFFE !important;
+}
+
+/* Ensure all text elements use off-white */
+* {
+  color: inherit;
+}
+

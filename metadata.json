@@ -1,0 +1,5 @@
+{
+  "name": "CulinaryAI - Smart Restaurant OS",
+  "description": "A production-ready AI-powered restaurant platform. Features automated AI menu generation (text & image), nutrition calculation, customer ordering, and kitchen workflow management.",
+  "requestFramePermissions": []
+}
