@@ -1,314 +1,156 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { ChefHat, Utensils, ArrowRight, Lock, User as UserIcon, MapPin, QrCode, Mail, Building } from 'lucide-react';
-import { useApp } from '../providers';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import { ChefHat, ArrowRight, Lock, Mail, Loader2, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const { setUser } = useApp();
-  
-  const initialRole = searchParams.get('role') === 'admin' ? 'admin' : 'customer';
-  const tableParam = searchParams.get('table');
-
-  const [activeRole, setActiveRole] = useState<'admin' | 'customer'>(initialRole);
-  const [isSignup, setIsSignup] = useState(false);
-
-  // Form States
-  const [customerName, setCustomerName] = useState('');
-  const [tableNumber, setTableNumber] = useState(tableParam || '');
-  
-  // Admin Login States
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
-  
-  // Signup States
-  const [signupName, setSignupName] = useState('');
-  const [signupRestaurant, setSignupRestaurant] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  useEffect(() => {
-    if (tableParam) {
-        setTableNumber(tableParam);
-        setActiveRole('customer');
-    }
-  }, [tableParam]);
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    if (activeRole === 'admin') {
-      if (isSignup) {
-        // Mock Signup
-        if (!signupName || !signupRestaurant || !signupEmail || !signupPassword) {
-          setError('Please fill all fields');
-          return;
-        }
-        setUser({
-          id: Date.now().toString(),
-          name: signupName,
-          role: 'admin',
-        });
-        router.push('/admin');
-      } else {
-        // Mock Admin Login
-        if (!adminEmail || !adminPassword) {
-          setError('Please enter email and password');
-          return;
-        }
-        setUser({
-          id: 'admin-1',
-          name: 'Admin User',
-          role: 'admin',
-        });
-        router.push('/admin');
-      }
-    } else {
-      // Customer Login
-      if (!customerName || !tableNumber) {
-        setError('Please enter your name and table number');
-        return;
-      }
-      setUser({
-        id: Date.now().toString(),
-        name: customerName,
-        role: 'customer',
-        tableNumber: tableNumber,
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       });
-      router.push('/menu');
+
+      if (result?.error) {
+        setError('Invalid email or password');
+      } else if (result?.ok) {
+        router.push('/admin');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className={`p-8 ${activeRole === 'admin' ? 'bg-slate-900' : 'bg-brand-600'}`}>
-          <div className="flex items-center justify-center mb-4">
-            <div className={`h-16 w-16 rounded-2xl ${activeRole === 'admin' ? 'bg-indigo-600' : 'bg-white/20'} flex items-center justify-center`}>
-              {activeRole === 'admin' ? <ChefHat size={32} className="text-white" /> : <Utensils size={32} className="text-white" />}
+    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F5] to-[#FFF5F5] flex flex-col">
+      {/* Header */}
+      <div className="border-b-4 border-black bg-white">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-black text-2xl">
+            <div className="w-10 h-10 bg-[#DC143C] rounded-lg flex items-center justify-center text-white">
+              <Sparkles className="w-5 h-5" />
             </div>
+            Culinary<span className="text-[#DC143C]">AI</span>
+          </Link>
+          <Link href="/register" className="text-sm font-bold text-gray-600 hover:text-black">
+            Don't have an account? <span className="text-[#DC143C]">Get Started</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          {/* Guest Order Banner */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6 text-center">
+            <p className="text-sm text-blue-800">
+              <span className="font-bold">Just want to order food?</span> No login required!{' '}
+              <Link href="/menu" className="text-blue-600 underline font-bold">
+                Browse our menu
+              </Link>{' '}
+              and checkout as a guest.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-white text-center">
-            {activeRole === 'admin' ? 'Restaurant Admin' : 'Customer Login'}
-          </h1>
-        </div>
 
-        {/* Role Toggle */}
-        <div className="p-4 bg-gray-50 border-b border-gray-200 flex gap-2">
-          <button
-            onClick={() => { setActiveRole('customer'); setIsSignup(false); setError(''); }}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-              activeRole === 'customer' 
-                ? 'bg-brand-600 text-white shadow-md' 
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <Utensils size={18} className="inline mr-2" />
-            Customer
-          </button>
-          <button
-            onClick={() => { setActiveRole('admin'); setIsSignup(false); setError(''); }}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-              activeRole === 'admin' 
-                ? 'bg-slate-900 text-white shadow-md' 
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <ChefHat size={18} className="inline mr-2" />
-            Admin
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleLogin} className="p-8 space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-              {error}
+          {/* Login Card */}
+          <div className="bg-white rounded-2xl border-2 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <ChefHat className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-black text-gray-900">Restaurant Login</h1>
+              <p className="text-gray-500 text-sm mt-1">Sign in to your dashboard</p>
             </div>
-          )}
 
-          {activeRole === 'customer' ? (
-            <>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <UserIcon size={16} />
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none"
-                  placeholder="John Doe"
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border-2 border-black rounded-xl focus:border-[#DC143C] outline-none transition-colors"
+                    placeholder="name@restaurant.com"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <MapPin size={16} />
-                  Table Number
-                </label>
-                <input
-                  type="text"
-                  value={tableNumber}
-                  onChange={(e) => setTableNumber(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none"
-                  placeholder="Table 5"
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border-2 border-black rounded-xl focus:border-[#DC143C] outline-none transition-colors"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-brand-600 hover:bg-brand-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2"
+                disabled={isLoading}
+                className="w-full bg-black hover:bg-gray-800 text-white py-4 rounded-xl font-bold text-lg shadow-[4px_4px_0px_0px_#DC143C] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                Start Ordering <ArrowRight size={20} />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    Sign In <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
               </button>
-            </>
-          ) : (
-            <>
-              {!isSignup ? (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Mail size={16} />
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={adminEmail}
-                      onChange={(e) => setAdminEmail(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none"
-                      placeholder="admin@restaurant.com"
-                      required
-                    />
-                  </div>
+            </form>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Lock size={16} />
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none"
-                      placeholder="••••••••"
-                      required
-                    />
-                  </div>
+            <div className="mt-6 text-center">
+              <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-[#DC143C]">
+                Forgot your password?
+              </Link>
+            </div>
+          </div>
 
-                  <button
-                    type="submit"
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    Login <ArrowRight size={20} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsSignup(true)}
-                    className="w-full text-slate-600 hover:text-slate-900 font-medium py-2"
-                  >
-                    Don't have an account? Sign up
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <UserIcon size={16} />
-                      Your Name
-                    </label>
-                    <input
-                      type="text"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none"
-                      placeholder="John Doe"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Building size={16} />
-                      Restaurant Name
-                    </label>
-                    <input
-                      type="text"
-                      value={signupRestaurant}
-                      onChange={(e) => setSignupRestaurant(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none"
-                      placeholder="My Restaurant"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Mail size={16} />
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none"
-                      placeholder="admin@restaurant.com"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Lock size={16} />
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none"
-                      placeholder="••••••••"
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    Create Account <ArrowRight size={20} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsSignup(false)}
-                    className="w-full text-slate-600 hover:text-slate-900 font-medium py-2"
-                  >
-                    Already have an account? Login
-                  </button>
-                </>
-              )}
-            </>
-          )}
-        </form>
+          {/* Register CTA */}
+          <div className="mt-6 text-center">
+            <p className="text-gray-600">
+              New to CulinaryAI?{' '}
+              <Link href="/register" className="font-bold text-[#DC143C] hover:underline">
+                Create your restaurant account →
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-
-
-
-

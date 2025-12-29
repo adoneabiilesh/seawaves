@@ -16,6 +16,7 @@ export interface PaymentRecord {
   paymentMethod: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
   tableNumber?: number;
+  orderType: 'online' | 'cash' | 'pos';
   customerName: string;
   createdAt: Date;
   platformFee: number;
@@ -36,7 +37,7 @@ export const PaymentTracker: React.FC<PaymentTrackerProps> = ({
 
   const filteredPayments = payments.filter(payment => {
     const matchesFilter = filter === 'all' || payment.status === filter;
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       payment.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       payment.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (payment.tableNumber?.toString().includes(searchQuery) ?? false);

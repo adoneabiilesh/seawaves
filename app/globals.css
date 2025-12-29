@@ -4,26 +4,40 @@
 
 @layer base {
   :root {
-    --background: #FFFFFE;
-    --foreground: #111111;
-    --card: #FFFFFE;
-    --card-foreground: #111111;
-    --popover: #FFFFFE;
-    --popover-foreground: #111111;
-    --primary: #111111;
-    --primary-foreground: #FFFFFE;
-    --secondary: #FFFFFE;
-    --secondary-foreground: #111111;
-    --muted: #FFFFFE;
-    --muted-foreground: #111111;
-    --accent: #FFFFFE;
-    --accent-foreground: #111111;
-    --destructive: #111111;
-    --destructive-foreground: #FFFFFE;
-    --border: #111111;
-    --input: #111111;
-    --ring: #111111;
-    --radius: 0.5rem;
+    /* Exact Colors */
+    --background: #FFFFF0;
+    /* Cream / Ivory tint */
+    --foreground: #000000;
+    /* Dead Black */
+
+    --card: #FFFFF0;
+    --card-foreground: #000000;
+
+    --popover: #FFFFF0;
+    --popover-foreground: #000000;
+
+    --primary: #000000;
+    --primary-foreground: #FFFFF0;
+
+    --secondary: #FFFFF0;
+    --secondary-foreground: #000000;
+
+    --muted: #F2F0E6;
+    --muted-foreground: #000000;
+
+    --accent: #DC143C;
+    /* Crimson Red */
+    --accent-foreground: #FFFFF0;
+
+    --destructive: #DC143C;
+    --destructive-foreground: #FFFFF0;
+
+    --border: #000000;
+    --input: #000000;
+    --ring: #000000;
+
+    --radius: 1rem;
+    /* Keeping rounded */
   }
 }
 
@@ -31,13 +45,25 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-[#FFFFFE] text-[#111111];
-    font-family: 'Favorit', sans-serif;
+    @apply bg-[#FFFFF0] text-[#000000] antialiased;
+    font-family: 'Inter', sans-serif;
   }
+
+  /* Force borders on Buttons and Cards by default? 
+     Or just use utilities. Let's make a utility class for the specific "Bordered" look if needed
+  */
 }
 
-/* Import the main styles */
-@import '../index.css';
+@layer components {
 
+  /* Common "Bordered" neo-brutalist style */
+  .neo-container {
+    @apply border-2 border-black shadow-[4px_4px_0px_0px_rgba(0, 0, 0, 1)];
+  }
 
+  .neo-button {
+    @apply border-2 border-black hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all shadow-[4px_4px_0px_0px_rgba(0, 0, 0, 1)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px];
+  }
+}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { sql } from '@/lib/supabase-admin';
 import { randomUUID } from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -48,4 +48,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 

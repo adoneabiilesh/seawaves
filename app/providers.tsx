@@ -1,287 +1,457 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Product, CartItem, Order, OrderStatus, User, Language, RestaurantSettings } from '../types';
+import { SessionProvider } from 'next-auth/react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { User, RestaurantSettings, Product, Order, CartItem, Category, Addon } from '../types';
+import { supabase } from '@/lib/db';
 
 interface AppContextType {
-  // User state
   user: User | null;
   setUser: (user: User | null) => void;
-  logout: () => void;
-
-  // Products state
+  settings: RestaurantSettings;
+  setSettings: (settings: RestaurantSettings) => void;
+  updateSettings: (settings: RestaurantSettings) => Promise<void>;
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  categories: Category[];
+  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
-
-  // Cart state
-  cart: CartItem[];
-  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
-  addToCart: (product: Product, quantity: number, modifiers: string[], specialRequest: string) => void;
-  removeFromCart: (id: string) => void;
-  updateCartQuantity: (id: string, delta: number) => void;
-  isCartOpen: boolean;
-  setIsCartOpen: (open: boolean) => void;
-
-  // Orders state
+  deleteProduct: (id: string) => void;
+  addCategory: (category: Category) => void;
+  updateCategory: (category: Category) => void;
+  deleteCategory: (id: string) => void;
+  addons: Addon[];
+  setAddons: React.Dispatch<React.SetStateAction<Addon[]>>;
   orders: Order[];
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
-
-  // Settings state
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  settings: RestaurantSettings;
-  setSettings: React.Dispatch<React.SetStateAction<RestaurantSettings>>;
-
-  // Tables state
+  cart: CartItem[];
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (productId: string) => void;
+  updateCartQuantity: (productId: string, quantity: number) => void;
+  handleCheckout: (details: { paymentMethod: string; email: string }) => Promise<void>;
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
   tables: number[];
-  setTables: React.Dispatch<React.SetStateAction<number[]>>;
-  addTable: (n: number) => void;
-  removeTable: (n: number) => void;
-
-  // Review state
+  tenant: { id: string; name: string; subdomain: string } | null;
+  restaurantId: string | null;
+  addTable: (tableNumber: number) => void;
+  removeTable: (tableNumber: number) => void;
   showReviewModal: boolean;
   setShowReviewModal: (show: boolean) => void;
   lastOrderId: string | null;
-  setLastOrderId: (id: string | null) => void;
-  restaurantId: string;
-  
-  // Checkout
-  handleCheckout: (details: {paymentMethod: string, email: string}) => void;
+  logout: () => void;
+  orderMode: 'dine_in' | 'delivery' | 'takeout' | null;
+  setOrderMode: (mode: 'dine_in' | 'delivery' | 'takeout' | null) => void;
+  tableNumber: number | null;
+  setTableNumber: (table: number | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: { en: 'Truffle Wagyu Burger', it: 'Burger di Wagyu al Tartufo', fr: 'Burger Wagyu Truffe', de: 'Trüffel Wagyu Burger' },
-    description: { 
-        en: 'Premium Wagyu beef patty, truffle aioli, aged cheddar, brioche bun.',
-        it: 'Hamburger di manzo Wagyu pregiato, aioli al tartufo, cheddar stagionato, pan brioche.',
-        fr: 'Galette de bœuf Wagyu de première qualité, aïoli à la truffe, cheddar vieilli, pain brioché.',
-        de: 'Premium Wagyu-Rindfleischpastete, Trüffel-Aioli, gereifter Cheddar, Brioche-Brötchen.'
-    },
-    recipe: {
-        en: '1. Grill Wagyu patty for 3 mins per side. 2. Toast bun with butter. 3. Melt cheese on patty. 4. Spread aioli on bun. 5. Assemble.',
-        it: '1. Grigliare la polpetta di Wagyu per 3 minuti per lato. 2. Tostare il pane con burro. 3. Sciogliere il formaggio. 4. Spalmare aioli. 5. Assemblare.',
-        fr: '1. Griller la galette Wagyu 3 min par côté. 2. Griller le pain. 3. Fondre le fromage. 4. Étaler aïoli. 5. Assembler.',
-        de: '1. Wagyu-Patty 3 Min pro Seite grillen. 2. Brötchen toasten. 3. Käse schmelzen. 4. Aioli verteilen. 5. Zusammenbauen.'
-    },
-    price: 24.50,
-    category: 'Main Course' as any,
-    imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
-    nutrition: { calories: 850, protein: 45, carbs: 32, fat: 55 },
-    allergens: ['Gluten', 'Dairy', 'Eggs'],
-    stock: 15,
-    isAiGenerated: false,
-    available: true
-  },
-  {
-    id: '2',
-    name: { en: 'Zen Garden Salad', it: 'Insalata Zen', fr: 'Salade Jardin Zen', de: 'Zen Gartensalat' },
-    description: {
-        en: 'Fresh mixed greens, edamame, avocado, ginger sesame dressing.',
-        it: 'Verdure miste fresche, edamame, avocado, condimento allo zenzero e sesamo.',
-        fr: 'Légumes verts mélangés frais, edamame, avocado, vinaigrette gingembre sésame.',
-        de: 'Frisches gemischtes Grün, Edamame, Avocado, Ingwer-Sesam-Dressing.'
-    },
-    recipe: {
-        en: '1. Toss greens. 2. Slice avocado. 3. Whisk ginger, sesame oil, soy sauce. 4. Drizzle dressing.',
-        it: '1. Mescolare le verdure. 2. Affettare avocado. 3. Sbattere zenzero e olio. 4. Condire.',
-        fr: '1. Mélanger salade. 2. Couper avocat. 3. Fouetter gingembre et huile. 4. Assaisonner.',
-        de: '1. Grün mischen. 2. Avocado schneiden. 3. Ingwer und Öl verquirlen. 4. Würzen.'
-    },
-    price: 14.00,
-    category: 'Appetizer' as any,
-    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-    nutrition: { calories: 320, protein: 12, carbs: 24, fat: 18 },
-    allergens: ['Soy', 'Sesame', 'Vegan'],
-    stock: 50,
-    isAiGenerated: false,
-    available: true
-  },
-  {
-    id: '3',
-    name: { en: 'Molten Lava Cake', it: 'Tortino al Cioccolato', fr: 'Moelleux au Chocolat', de: 'Schokoladen-Lava-Kuchen' },
-    description: {
-        en: 'Rich dark chocolate cake with a molten center, served with vanilla bean ice cream.',
-        it: 'Ricca torta al cioccolato fondente con cuore fuso, servita con gelato alla vaniglia.',
-        fr: 'Gâteau riche au chocolat noir avec un centre fondant, servi avec de la glace à la vanille.',
-        de: 'Reichhaltiger dunkler Schokoladenkuchen mit flüssigem Kern, serviert mit Vanilleeis.'
-    },
-    recipe: {
-        en: '1. Melt chocolate & butter. 2. Whisk eggs & sugar. 3. Fold in flour. 4. Bake at 400F for 12 mins. 5. Serve hot.',
-        it: '1. Sciogliere cioccolato. 2. Sbattere uova. 3. Unire farina. 4. Infornare 12 min. 5. Servire caldo.',
-        fr: '1. Fondre chocolat. 2. Battre oeufs. 3. Ajouter farine. 4. Cuire 12 min. 5. Servir chaud.',
-        de: '1. Schokolade schmelzen. 2. Eier schlagen. 3. Mehl unterheben. 4. 12 Min backen. 5. Heiß servieren.'
-    },
-    price: 12.00,
-    category: 'Dessert' as any,
-    imageUrl: 'https://images.unsplash.com/photo-1624353365286-3f8d62daad51?auto=format&fit=crop&w=800&q=80',
-    nutrition: { calories: 550, protein: 8, carbs: 65, fat: 28 },
-    allergens: ['Dairy', 'Eggs', 'Gluten'],
-    stock: 8,
-    isAiGenerated: false,
-    available: true
-  }
-];
-
-const INITIAL_SETTINGS: RestaurantSettings = {
-    name: 'CulinaryAI Bistro',
-    currency: '$',
-    taxRate: 8.5,
-    primaryColor: '#f97316',
-    openingHours: 'Mon-Sun: 11am - 10pm',
-    address: '123 Innovation Blvd, Tech City'
-};
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [tables, setTables] = useState<number[]>([1, 2, 3, 4, 5]);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [settings, setSettings] = useState<RestaurantSettings>({
+    name: 'My Restaurant',
+    currency: '$',
+    taxRate: 10,
+    primaryColor: '#f97316',
+    openingHours: '09:00 - 22:00',
+    address: '123 Main St',
+    logoUrl: ''
+  });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [language, setLanguage] = useState<Language>('en');
-  const [settings, setSettings] = useState<RestaurantSettings>(INITIAL_SETTINGS);
+  const [tables, setTables] = useState<number[]>([1, 2, 3, 4]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
-  const restaurantId = 'default-restaurant-id';
+  const [orderMode, setOrderMode] = useState<'dine_in' | 'delivery' | 'takeout' | null>(null);
+  const [tableNumber, setTableNumber] = useState<number | null>(null);
 
-  const logout = () => {
-    setUser(null);
-    setCart([]);
+  const [tenant, setTenant] = useState<{ id: string; name: string; subdomain: string } | null>(null);
+  const [fallbackRestaurantId, setFallbackRestaurantId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTenant = async () => {
+      if (typeof window === 'undefined') return;
+      const host = window.location.host;
+      const parts = host.split('.');
+
+      let subdomain = parts[0];
+      if (host.includes('localhost')) {
+        if (parts.length > 1 && parts[parts.length - 2] === 'localhost') {
+          subdomain = parts[0];
+        } else {
+          subdomain = 'localhost';
+        }
+      }
+
+      const mainDomains = ['www', 'localhost', 'yourplatform'];
+      if (mainDomains.includes(subdomain)) {
+        // On main domain - fetch first restaurant as fallback for development
+        const { data: firstRestaurant } = await supabase
+          .from('Restaurant')
+          .select('*')
+          .limit(1)
+          .single();
+
+        if (firstRestaurant) {
+          setFallbackRestaurantId(firstRestaurant.id);
+          setSettings(prev => ({ ...prev, name: firstRestaurant.name, logoUrl: firstRestaurant.logoUrl || '' }));
+        }
+        return;
+      }
+
+      const { data } = await supabase.from('Restaurant').select('*').eq('subdomain', subdomain).maybeSingle();
+      if (data) {
+        setTenant(data);
+        setSettings(prev => ({ ...prev, name: data.name, logoUrl: data.logoUrl || '' }));
+      }
+    };
+
+    fetchTenant();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      // Filter by tenant if available
+      const query = supabase.from('Product').select('*').eq('available', true);
+      if (tenant) query.eq('restaurantId', tenant.id);
+
+      const { data: productData } = await query;
+      if (productData) setProducts(productData);
+
+      // Categories
+      const catQuery = supabase.from('Category').select('*').order('displayOrder');
+      if (tenant) catQuery.eq('restaurantId', tenant.id);
+      const { data: categoryData } = await catQuery;
+      if (categoryData) setCategories(categoryData);
+
+      // Addons
+      const addonQuery = supabase.from('Addon').select('*').eq('available', true);
+      if (tenant) addonQuery.eq('restaurantId', tenant.id);
+      const { data: addonData } = await addonQuery;
+      if (addonData) setAddons(addonData);
+
+      // Tables
+      const tableQuery = supabase.from('Table').select('tableNumber');
+      if (tenant) tableQuery.eq('restaurantId', tenant.id);
+      const { data: tableData } = await tableQuery;
+      if (tableData) setTables(tableData.map((t: { tableNumber: number }) => t.tableNumber));
+    };
+
+    fetchData();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Order' }, () => fetchData())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tenant]);
+
+  // Use restaurant ID if available from user or hardcoded for now
+  // For this demo, we assume single tenant or handled by RLS via Supabase if setup. 
+  // But we need a restaurantId for inserts.
+  // We'll fetch the first restaurantId for operations if not in user context.
+  const getRestaurantId = async () => {
+    // Simplified: return user.restaurantId or fetch first
+    if (user?.restaurantId) return user.restaurantId;
+    const { data } = await supabase.from('Restaurant').select('id').limit(1).single();
+    return data?.id;
   };
 
-  const addToCart = (product: Product, quantity: number, modifiers: string[], specialRequest: string) => {
-    setCart(prev => {
-      const existing = prev.find(item => 
-          item.id === product.id && 
-          JSON.stringify(item.modifiers) === JSON.stringify(modifiers)
-      );
-      if (existing) {
-        return prev.map(item => item === existing ? { ...item, quantity: item.quantity + quantity } : item);
+  const addProduct = async (product: Product) => {
+    const restaurantId = await getRestaurantId();
+    if (!restaurantId) return;
+
+    const { id, ...dataToInsert } = product;
+    // If ID is temp (numeric string), drop it. 
+    // Types define id as string. 
+    // Supabase will generate UUID.
+
+    const { data, error } = await supabase.from('Product').insert({
+      ...dataToInsert,
+      restaurantId,
+      // Ensure name/desc are objects not string
+      name: typeof product.name === 'string' ? { en: product.name } : product.name,
+      description: typeof product.description === 'string' ? { en: product.description } : product.description,
+    }).select().single();
+
+    if (data) {
+      setProducts([...products, data]);
+    } else if (error) {
+      console.error("Error adding product", error);
+    }
+  };
+
+  const updateProduct = async (product: Product) => {
+    const { data, error } = await supabase.from('Product').update(product).eq('id', product.id).select().single();
+    if (data) {
+      setProducts(products.map(p => p.id === product.id ? data : p));
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    const { error } = await supabase.from('Product').delete().eq('id', id);
+    if (!error) {
+      setProducts(products.filter(p => p.id !== id));
+    }
+  };
+
+  const addCategory = async (category: Category) => {
+    const restaurantId = await getRestaurantId();
+    if (!restaurantId) {
+      console.error("No restaurantId available for adding category");
+      return;
+    }
+
+    const { id, ...dataToInsert } = category;
+
+    // Ensure name is in JSONB format
+    const nameValue = typeof category.name === 'string'
+      ? { en: category.name }
+      : category.name;
+
+    const descValue = category.description
+      ? (typeof category.description === 'string' ? { en: category.description } : category.description)
+      : null;
+
+    const { data, error } = await supabase.from('Category').insert({
+      restaurantId,
+      name: nameValue,
+      description: descValue,
+      displayOrder: category.displayOrder || 0,
+    }).select().single();
+
+    if (error) {
+      console.error("Error adding category:", error);
+    } else if (data) {
+      setCategories([...categories, data]);
+    }
+  };
+
+  const updateCategory = async (category: Category) => {
+    const { data, error } = await supabase.from('Category').update(category).eq('id', category.id).select().single();
+    if (data) setCategories(categories.map(c => c.id === category.id ? data : c));
+  };
+
+  const deleteCategory = async (id: string) => {
+    const { error } = await supabase.from('Category').delete().eq('id', id);
+    if (!error) setCategories(categories.filter(c => c.id !== id));
+  };
+
+  const addTable = (tableNumber: number) => {
+    // Implement real table add later
+    if (!tables.includes(tableNumber)) {
+      setTables([...tables, tableNumber]);
+    }
+  };
+
+  const removeTable = (tableNumber: number) => {
+    // Implement real table remove later
+    setTables(tables.filter(t => t !== tableNumber));
+  };
+
+  const updateSettings = async (newSettings: RestaurantSettings) => {
+    // Update local state immediately
+    setSettings(newSettings);
+
+    // Persist to database if we have a tenant
+    if (tenant?.id) {
+      const { error } = await supabase
+        .from('Restaurant')
+        .update({
+          name: newSettings.name,
+          currency: newSettings.currency,
+          taxRate: newSettings.taxRate,
+          primaryColor: newSettings.primaryColor,
+          openingHours: newSettings.openingHours,
+          address: newSettings.address,
+          logoUrl: newSettings.logoUrl,
+        })
+        .eq('id', tenant.id);
+
+      if (error) {
+        console.error('Error saving settings:', error);
       }
-      return [...prev, { ...product, quantity, modifiers, specialRequest }];
+    }
+  };
+
+  // Cart functions
+  const addToCart = (item: CartItem) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(i => i.product.id === item.product.id);
+      if (existingItem) {
+        return prevCart.map(i =>
+          i.product.id === item.product.id
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i
+        );
+      }
+      return [...prevCart, item];
     });
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (id: string) => {
-    setCart(prev => prev.filter(item => item.id !== id));
+  const removeFromCart = (productId: string) => {
+    setCart(prevCart => prevCart.filter(item => item.product.id !== productId));
   };
 
-  const updateCartQuantity = (id: string, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.id === id) return { ...item, quantity: Math.max(1, item.quantity + delta) };
-      return item;
-    }));
+  const updateCartQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    setCart(prevCart =>
+      prevCart.map(item =>
+        item.product.id === productId ? { ...item, quantity } : item
+      )
+    );
   };
 
-  const handleCheckout = (details: {paymentMethod: string, email: string}) => {
-    if (cart.length === 0 || !user) return;
-    
-    let inventoryError = false;
-    const updatedProducts = [...products];
+  const handleCheckout = async (details: { paymentMethod: string; email: string }) => {
+    if (cart.length === 0) return;
 
-    for (const item of cart) {
-        const productIndex = updatedProducts.findIndex(p => p.id === item.id);
-        if (productIndex !== -1) {
-            if (updatedProducts[productIndex].stock < item.quantity) {
-                alert(`Sorry, ${item.name.en} is out of stock!`);
-                inventoryError = true;
-                break;
-            }
-            updatedProducts[productIndex].stock -= item.quantity;
-        }
+    const restaurantId = tenant?.id || fallbackRestaurantId || (await getRestaurantId());
+    if (!restaurantId) {
+      console.error('No restaurant ID available for checkout');
+      return;
     }
 
-    if (inventoryError) return;
+    const subtotal = cart.reduce((sum, item) => {
+      const itemTotal = item.product.price * item.quantity;
+      const addonsTotal = item.addons?.reduce((a, addon) => a + addon.price, 0) || 0;
+      return sum + itemTotal + addonsTotal;
+    }, 0);
 
-    setProducts(updatedProducts);
+    const taxRate = settings.taxRate || 10;
+    const tax = subtotal * (taxRate / 100);
+    const total = subtotal + tax;
 
-    const newOrder: Order = {
-        id: Date.now().toString(),
-        items: [...cart],
-        total: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0) * (1 + settings.taxRate/100),
-        status: OrderStatus.PENDING,
-        timestamp: Date.now(),
-        tableNumber: user.tableNumber,
-        customerName: user.name,
-        customerEmail: details.email,
-        paymentMethod: details.paymentMethod as any
+    const orderData = {
+      restaurantId,
+      subtotal,
+      tax,
+      total,
+      status: 'pending',
+      paymentMode: details.paymentMethod,
+      tableNumber: tableNumber || user?.tableNumber || null,
+      customerName: user?.name || details.email,
+      specialRequests: cart.map(item => item.notes).filter(Boolean).join('; ') || null,
+      // Note: orderType column would need to be added to database via migration
+      // orderType: orderMode || 'dine_in',
     };
 
-    setOrders(prev => [...prev, newOrder]);
-    setLastOrderId(newOrder.id);
-    setCart([]);
-    setIsCartOpen(false);
-    
-    // Show review modal after successful payment
-    setTimeout(() => {
+    const { data, error } = await supabase
+      .from('Order')
+      .insert(orderData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating order:', error);
+      alert('Failed to place order. Please try again.');
+      return;
+    }
+
+    if (data) {
+      // Insert order items
+      const orderItems = cart.map(item => ({
+        orderId: data.id,
+        productId: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price,
+        customizations: item.addons ? { addons: item.addons.map(a => ({ id: a.id, name: typeof a.name === 'object' ? a.name.en : a.name, price: a.price })) } : null
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('OrderItem')
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+      }
+
+      console.log('Order placed successfully:', data.id);
+      alert(`Order placed successfully! Order #${data.id.slice(-6).toUpperCase()}`);
+
+      setOrders(prev => [...prev, data]);
+      setLastOrderId(data.id);
+      setCart([]);
+      setIsCartOpen(false);
       setShowReviewModal(true);
-    }, 500);
+    }
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    setOrders(prev => prev.map(order => order.id === orderId ? { ...order, status } : order));
+  const logout = () => {
+    setUser(null);
+    setCart([]);
+    window.location.href = '/login';
   };
-
-  const addProduct = (product: Product) => setProducts(prev => [product, ...prev]);
-  const updateProduct = (product: Product) => setProducts(prev => prev.map(p => p.id === product.id ? product : p));
-
-  const addTable = (n: number) => !tables.includes(n) && setTables(prev => [...prev, n].sort((a,b)=>a-b));
-  const removeTable = (n: number) => setTables(prev => prev.filter(t => t !== n));
 
   return (
-    <AppContext.Provider
-      value={{
+    <SessionProvider>
+      <AppContext.Provider value={{
         user,
         setUser,
-        logout,
+        settings,
+        setSettings,
+        updateSettings,
         products,
         setProducts,
+        categories,
+        setCategories,
         addProduct,
         updateProduct,
+        deleteProduct,
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        addons,
+        setAddons,
+        orders,
+        setOrders,
         cart,
         setCart,
         addToCart,
         removeFromCart,
         updateCartQuantity,
+        handleCheckout,
         isCartOpen,
         setIsCartOpen,
-        orders,
-        setOrders,
-        updateOrderStatus,
-        language,
-        setLanguage,
-        settings,
-        setSettings,
         tables,
-        setTables,
+        tenant,
+        restaurantId: tenant?.id || fallbackRestaurantId,
         addTable,
         removeTable,
         showReviewModal,
         setShowReviewModal,
         lastOrderId,
-        setLastOrderId,
-        restaurantId,
-        handleCheckout,
-      } as any}
-    >
-      {children}
-    </AppContext.Provider>
+        logout,
+        orderMode,
+        setOrderMode,
+        tableNumber,
+        setTableNumber
+      }}>
+        {children}
+      </AppContext.Provider>
+    </SessionProvider>
   );
 }
 
 export function useApp() {
   const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
+  if (!context) {
+    throw new Error('useApp must be used within AppProvider');
   }
   return context;
 }
-

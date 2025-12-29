@@ -7,26 +7,30 @@ import { ReviewModal } from './ReviewModal';
 import { useApp } from '../app/providers';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { 
-    cart, 
-    isCartOpen, 
-    setIsCartOpen, 
-    removeFromCart, 
-    updateCartQuantity, 
-    handleCheckout, 
+  const {
+    cart,
+    isCartOpen,
+    setIsCartOpen,
+    removeFromCart,
+    updateCartQuantity,
+    handleCheckout,
     settings,
     showReviewModal,
     setShowReviewModal,
     lastOrderId,
     orders,
-    restaurantId
+    restaurantId,
+    orderMode,
+    setOrderMode,
+    tableNumber,
+    setTableNumber
   } = useApp();
 
   return (
     <>
       <Navigation />
       {children}
-      <CartDrawer 
+      <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         items={cart}
@@ -34,8 +38,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         onUpdateQuantity={updateCartQuantity}
         onCheckout={handleCheckout}
         settings={settings}
+        orderMode={orderMode}
+        tableNumber={tableNumber}
+        onOrderModeChange={setOrderMode}
+        onTableNumberChange={setTableNumber}
       />
-      {lastOrderId && (
+      {lastOrderId && restaurantId && (
         <ReviewModal
           isOpen={showReviewModal}
           onClose={() => {

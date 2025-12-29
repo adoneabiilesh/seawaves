@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { sql } from '@/lib/supabase-admin';
 
 // Haversine formula to calculate distance between two coordinates
 function calculateDistance(
@@ -76,4 +76,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 

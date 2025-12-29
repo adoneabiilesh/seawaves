@@ -1,61 +1,58 @@
-import type { Metadata } from 'next';
-import '../index.css';
+'use client';
+
+import React, { useEffect } from 'react';
 import { AppProvider } from './providers';
 import { ClientLayout } from '../components/ClientLayout';
-
-export const metadata: Metadata = {
-  title: 'CulinaryAI | Smart Restaurant OS',
-  description: 'AI-powered restaurant management system',
-};
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { Toaster } from 'sonner';
+import '../index.css';
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Register service worker for PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+  }, []);
+
   return (
     <html lang="en">
       <head>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              tailwind.config = {
-                theme: {
-                  extend: {
-                    fontFamily: {
-                      sans: ['Favorit', 'sans-serif'],
-                      heading: ['Favorit', 'sans-serif'],
-                      subheading: ['Favorit', 'sans-serif'],
-                    },
-                    colors: {
-                      brand: {
-                        50: '#fff7ed',
-                        100: '#ffedd5',
-                        200: '#fed7aa',
-                        300: '#fdba74',
-                        400: '#fb923c',
-                        500: '#f97316',
-                        600: '#ea580c',
-                        700: '#c2410c',
-                        800: '#9a3412',
-                        900: '#7c2d12',
-                      }
-                    }
-                  }
-                }
-              }
-            `,
-          }}
-        />
+        <title>CulinaryAI - Smart Restaurant Management</title>
+        <meta name="description" content="AI-powered restaurant management system with real-time order tracking, menu digitization, and multi-payment support" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* PWA Meta Tags */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#DC143C" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="CulinaryAI" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="font-sans antialiased">
-        <AppProvider>
-          <ClientLayout>{children}</ClientLayout>
-        </AppProvider>
+      <body>
+        <ErrorBoundary>
+          <AppProvider>
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+            <Toaster
+              position="top-center"
+              richColors
+              closeButton
+              toastOptions={{
+                style: {
+                  borderRadius: '12px',
+                  fontFamily: 'inherit',
+                },
+              }}
+            />
+          </AppProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
 }
-
-
