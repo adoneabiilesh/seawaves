@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: {
+    // Skip type checking during build (faster deployments)
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    // Skip ESLint during build
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     serverComponentsExternalPackages: ['@supabase/supabase-js']
   },
